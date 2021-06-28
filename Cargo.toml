@@ -8,3 +8,4 @@ edition = "2018"
 [dependencies]
 arrow = "4.3.0"
 parquet = "4.3.0"
+clap = "3.0.0-beta.2"
