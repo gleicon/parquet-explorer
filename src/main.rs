@@ -38,8 +38,9 @@ pub async fn main() {
             println!("query: {}", q);
             // parquet_query(opts.file, q);
             // ()
+            // cargo run -- -d -f test_data/taxi_2019_04.parquet -q "SELECT count(*) FROM parquet_tables"
             let mut ctx = datafusion::prelude::ExecutionContext::new();
-            ctx.register_parquet("table", &opts.file).unwrap();
+            ctx.register_parquet("parquet_tables", &opts.file).unwrap();
 
             // create a plan to run a SQL query
             //    let df = ctx.sql("SELECT a, MIN(b) FROM example GROUP BY a LIMIT 100")?;
