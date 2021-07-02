@@ -4,9 +4,9 @@ use clap::{AppSettings, Clap};
 use std::time::Instant;
 
 use datafusion;
-use parquet::file::reader::{FileReader, SerializedFileReader};
+use parquet::file::reader::{FileReader};
 
-use std::{fs::File, path::Path};
+use std::path::Path;
 
 #[derive(Clap)]
 #[clap(version = "0.0.1", author = "gleicon <gleicon@gmail.com>")]
@@ -27,16 +27,24 @@ pub async fn main() {
     let opts: Opts = Opts::parse();
     let path = Path::new(&opts.file);
 
-    if let Ok(file) = File::open(&path) {
-        let reader = SerializedFileReader::new(file).unwrap();
+    let tablename = path.file_stem().unwrap();
 
-        if opts.describe {
-            describe_parquet(reader);
-        }
+    let mut ctx = datafusion::prelude::ExecutionContext::new();
+    ctx.register_parquet(&tablename.to_str().unwrap(), &opts.file).unwrap();
+    println!("tablename: {:?}", tablename);
+
+    if opts.describe {
+        // describe_parquet(reader);
+        println!("describe");
     }
 
     match opts.query {
-        Some(q) => query_parquet(opts.file, q).await.unwrap(),
+        Some(q) => {
+            match query_parquet(ctx, q.clone()).await {
+                Ok(_a) => (),
+                Err(e) => println!("Error running query {:?}: {:?}", q, e),
+            }
+        },
         None => println!("Empty query"),
     }
 }
@@ -49,20 +57,19 @@ fn describe_parquet(reader: parquet::file::reader::SerializedFileReader<std::fs:
     println!("row_group_reader: {}", row_group_reader.num_columns());
 }
 
-async fn query_parquet(path: String, query: String) -> datafusion::error::Result<()> {
+async fn query_parquet(mut ctx: datafusion::prelude::ExecutionContext, query: String) -> datafusion::error::Result<()> {
     let start = Instant::now();
 
     println!("query: {}", query);
     // cargo run -- -d -f test_data/taxi_2019_04.parquet -q "SELECT count(*) FROM parquet_tables"
-    let mut ctx = datafusion::prelude::ExecutionContext::new();
-
-    ctx.register_parquet("parquet_tables", &path).unwrap();
-
-    // create a plan to run a SQL query
-    let df = ctx.sql(&query).unwrap();
-    let results: Vec<RecordBatch> = df.collect().await.unwrap();
-    print_batches(&results).unwrap();
-    let duration = start.elapsed();
-    println!("Time elapsed: {:?}\n{:?} rows", duration, results.len());
-    Ok(())
+    match ctx.sql(&query) {
+        Ok(df) => {
+            let results: Vec<RecordBatch> = df.collect().await.unwrap();
+            print_batches(&results).unwrap();
+            let duration = start.elapsed();
+            println!("Time elapsed: {:?}\n{:?} rows", duration, results.len());
+            return Ok(())
+        },
+        Err(e) => return Err(e),
+    }
 }
