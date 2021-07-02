@@ -2,11 +2,10 @@ use arrow::record_batch::RecordBatch;
 use arrow::util::pretty::print_batches;
 use clap::{AppSettings, Clap};
 use std::time::Instant;
-
 use datafusion;
-use parquet::file::reader::{FileReader};
 
-use std::path::Path;
+
+mod filemanager;
 
 #[derive(Clap)]
 #[clap(version = "0.0.1", author = "gleicon <gleicon@gmail.com>")]
@@ -25,21 +24,15 @@ struct Opts {
 #[tokio::main]
 pub async fn main() {
     let opts: Opts = Opts::parse();
-    let path = Path::new(&opts.file);
-
-    let tablename = path.file_stem().unwrap().to_str().unwrap();
-
-    let execution_config = datafusion::prelude::ExecutionConfig::new().with_information_schema(true);
-
-    //let mut ctx = datafusion::prelude::ExecutionContext::new();
-    let mut ctx = datafusion::prelude::ExecutionContext::with_config(execution_config);
-
-    ctx.register_parquet(&tablename.clone(), &opts.file).unwrap();
-    println!("tablename: {:?}", tablename);
+    let pm = filemanager::ParquetFileManager::new(opts.file.clone());
+    let ctx = pm.execution_context;
 
     if opts.describe {
-        let qq = format!("SHOW COLUMNS FROM {}", tablename);
-        query_parquet(ctx.clone(), qq).await.unwrap()
+        for (k, _v) in pm.files.iter() {
+            let qq = format!("SHOW COLUMNS FROM {}", k);
+            query_parquet(ctx.clone(), qq).await.unwrap()
+        }
+        
     }
 
     match opts.query {
@@ -49,7 +42,7 @@ pub async fn main() {
                 Err(e) => println!("Error running query {:?}: {:?}", q, e),
             }
         },
-        None => println!("Empty query"),
+        None => println!("Empty query"), 
     }
 }
 
