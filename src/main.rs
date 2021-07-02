@@ -27,20 +27,24 @@ pub async fn main() {
     let opts: Opts = Opts::parse();
     let path = Path::new(&opts.file);
 
-    let tablename = path.file_stem().unwrap();
+    let tablename = path.file_stem().unwrap().to_str().unwrap();
 
-    let mut ctx = datafusion::prelude::ExecutionContext::new();
-    ctx.register_parquet(&tablename.to_str().unwrap(), &opts.file).unwrap();
+    let execution_config = datafusion::prelude::ExecutionConfig::new().with_information_schema(true);
+
+    //let mut ctx = datafusion::prelude::ExecutionContext::new();
+    let mut ctx = datafusion::prelude::ExecutionContext::with_config(execution_config);
+
+    ctx.register_parquet(&tablename.clone(), &opts.file).unwrap();
     println!("tablename: {:?}", tablename);
 
     if opts.describe {
-        // describe_parquet(reader);
-        println!("describe");
+        let qq = format!("SHOW COLUMNS FROM {}", tablename);
+        query_parquet(ctx.clone(), qq).await.unwrap()
     }
 
     match opts.query {
         Some(q) => {
-            match query_parquet(ctx, q.clone()).await {
+            match query_parquet(ctx.clone(), q.clone()).await {
                 Ok(_a) => (),
                 Err(e) => println!("Error running query {:?}: {:?}", q, e),
             }
@@ -49,13 +53,6 @@ pub async fn main() {
     }
 }
 
-fn describe_parquet(reader: parquet::file::reader::SerializedFileReader<std::fs::File>) {
-    let parquet_metadata = reader.metadata();
-    let row_group_reader = reader.get_row_group(0).unwrap();
-
-    println!("num_row_groups: {}", parquet_metadata.num_row_groups());
-    println!("row_group_reader: {}", row_group_reader.num_columns());
-}
 
 async fn query_parquet(mut ctx: datafusion::prelude::ExecutionContext, query: String) -> datafusion::error::Result<()> {
     let start = Instant::now();
