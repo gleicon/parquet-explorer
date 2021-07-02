@@ -1,10 +1,10 @@
 use datafusion;
-use std::path::{PathBuf,Path};
 use std::collections::HashMap;
 use std::fs;
+use std::path::{Path, PathBuf};
 
-//#[derive(Clone)]
-pub struct ParquetFileManager{
+#[derive(Clone)]
+pub struct ParquetFileManager {
     pub root_path: String,
     pub path: PathBuf,
     pub execution_context: datafusion::prelude::ExecutionContext,
@@ -16,7 +16,9 @@ impl ParquetFileManager {
         let path = Path::new(&pathname);
         let tablename = path.file_stem().unwrap().to_str().unwrap();
 
-        self.execution_context.register_parquet(&tablename.clone(), &pathname).unwrap();
+        self.execution_context
+            .register_parquet(&tablename.clone(), &pathname)
+            .unwrap();
         self.files.insert(tablename.to_string(), pathname);
     }
 
@@ -40,9 +42,10 @@ impl ParquetFileManager {
         }
     }
 
-    pub fn new (basepath:  String) -> Self {
+    pub fn new(basepath: String) -> Self {
         let bp = Path::new(&basepath);
-        let execution_config = datafusion::prelude::ExecutionConfig::new().with_information_schema(true);
+        let execution_config =
+            datafusion::prelude::ExecutionConfig::new().with_information_schema(true);
 
         let mut s = Self {
             root_path: basepath.clone(),
@@ -52,6 +55,6 @@ impl ParquetFileManager {
         };
 
         s.load_files();
-        return s
+        return s;
     }
 }
