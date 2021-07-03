@@ -1,7 +1,11 @@
 use clap::{AppSettings, Clap};
+use linefeed::{Interface, ReadResult};
+use std::iter::FromIterator;
+use std::path::Path;
 
 mod filemanager;
 mod parquethandler;
+mod repl;
 
 #[derive(Clap)]
 #[clap(version = "0.0.1", author = "gleicon <gleicon@gmail.com>")]
@@ -24,6 +28,9 @@ struct Opts {
 
     #[clap(short = 's', long = "singlepartition")]
     singlepartition: bool,
+
+    #[clap(short = 'i', long = "interactive")]
+    interactive: bool,
 }
 
 #[tokio::main]
@@ -31,9 +38,15 @@ pub async fn main() {
     let opts: Opts = Opts::parse();
     let pm = filemanager::ParquetFileManager::new(opts.file.clone());
     let parquet_handler = parquethandler::ParquetHandler::new(pm);
+    let mut repl = repl::Repl::new(parquet_handler.clone());
 
     if opts.describe {
         parquet_handler.clone().describe().await;
+    }
+
+    if opts.interactive {
+        repl.start_interactive_mode().await;
+        return;
     }
 
     match opts.query {
