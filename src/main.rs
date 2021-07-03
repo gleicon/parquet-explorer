@@ -1,6 +1,5 @@
 use clap::{AppSettings, Clap};
 
-
 mod filemanager;
 mod parquethandler;
 
@@ -16,6 +15,15 @@ struct Opts {
 
     #[clap(short = 'q', long = "query")]
     query: Option<String>,
+
+    #[clap(short = 'n', long = "newfile")]
+    newfile: bool,
+
+    #[clap(short = 'o', long = "outfile")]
+    outfile: Option<String>,
+
+    #[clap(short = 's', long = "singlepartition")]
+    singlepartition: bool,
 }
 
 #[tokio::main]
@@ -30,8 +38,16 @@ pub async fn main() {
 
     match opts.query {
         Some(q) => {
-            parquet_handler.clone().query(q).await.unwrap();
-        },
-        None => println!("Empty query"), 
+            if !opts.newfile {
+                parquet_handler.clone().query(q).await.unwrap();
+            } else {
+                parquet_handler
+                    .clone()
+                    .query_to_parquet(q.clone(), opts.outfile.unwrap(), opts.singlepartition)
+                    .await
+                    .unwrap();
+            }
+        }
+        None => println!("Empty query"),
     }
 }
