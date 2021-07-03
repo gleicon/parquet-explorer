@@ -2,9 +2,9 @@ use linefeed::{Interface, ReadResult};
 use std::iter::FromIterator;
 use std::path::Path;
 
-struct Repl {
-    parquet_handler: crate::parquethandler::ParquetHandler,
-    root_path: String,
+pub struct Repl {
+    pub parquet_handler: crate::parquethandler::ParquetHandler,
+    pub root_path: String,
 }
 
 impl Repl {
