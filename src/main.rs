@@ -1,7 +1,4 @@
 use clap::{AppSettings, Clap};
-use linefeed::{Interface, ReadResult};
-use std::iter::FromIterator;
-use std::path::Path;
 
 mod filemanager;
 mod parquethandler;

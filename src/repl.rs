@@ -20,13 +20,12 @@ impl Repl {
         reader.set_prompt(&prompt).unwrap();
 
         while let ReadResult::Input(input) = reader.read_line().unwrap() {
-            let res = Vec::from_iter(
-                input
-                    .to_lowercase()
-                    .trim()
-                    .split("something")
-                    .map(String::from),
-            );
+            let res = Vec::from_iter(input.to_lowercase().trim().split(" ").map(String::from));
+
+            if !input.trim().is_empty() {
+                reader.add_history(input.clone());
+            }
+
             let cmd = &res[0];
 
             match cmd.as_str() {
