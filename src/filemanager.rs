@@ -25,13 +25,17 @@ impl ParquetFileManager {
     fn load_files(&mut self) {
         let dir = &self.path;
         if dir.is_dir() {
-            // directory with one or more files
+            // directory with one or more files may be a partitioned parquet file
             for entry in fs::read_dir(dir).unwrap() {
                 let path = entry.unwrap().path();
                 if path.is_file() {
                     let parquet_path = path.to_str().unwrap().to_string();
                     self.load_parquet(parquet_path);
                 };
+                let main_name = self.path.file_stem().unwrap().to_str().unwrap();
+                self.execution_context
+                    .register_parquet(main_name, &self.root_path)
+                    .unwrap();
             }
         } else {
             // single file
